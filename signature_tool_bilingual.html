@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature to PNG Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .language-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .lang-btn {
+            padding: 6px 12px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+            color: #666;
+        }
+
+        .lang-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .lang-btn:hover {
+            border-color: #667eea;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .header-top {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-area input[type="file"] {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 12px;
+        }
+
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-value {
+            color: #667eea;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .preview-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .preview-label {
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .preview-container {
+            background: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
+                        linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
+            background-size: 20px 20px;
+            background-position: 0 0, 10px 10px;
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            border: 1px solid #e0e0e0;
+        }
+
+        .preview-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .preview-placeholder {
+            color: #ccc;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            flex: 1;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .footer {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        .footer-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .actions {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <h1 id="appTitle">✍️ 签名转PNG工具</h1>
+                <div class="language-selector">
+                    <button class="lang-btn active" data-lang="zh">中文</button>
+                    <button class="lang-btn" data-lang="en">English</button>
+                </div>
+            </div>
+            <p id="appSubtitle">简洁高效，上传 → 调参 → 下载</p>
+        </div>
+
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        <div class="content">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <div class="upload-text" id="uploadText">点击或拖拽上传签名照片</div>
+                    <div class="upload-hint" id="uploadHint">支持 JPG, PNG, GIF 等格式</div>
+                    <input type="file" id="fileInput" accept="image/*">
+                </div>
+
+                <div class="controls-section">
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="thresholdLabel">阈值调节</span>
+                            <span class="control-value" id="thresholdValue">150</span>
+                        </div>
+                        <input type="range" id="thresholdSlider" class="slider" min="0" max="255" value="150">
+                        <div class="upload-hint" id="thresholdHint">数值小 → 保留细节，数值大 → 只保留黑色</div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="blurLabel">去噪强度</span>
+                            <span class="control-value" id="blurValue">1</span>
+                        </div>
+                        <input type="range" id="blurSlider" class="slider" min="0" max="5" value="1" step="0.5">
+                        <div class="upload-hint" id="blurHint">消除背景纹理和阴影</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="preview-section">
+                <div class="preview-label" id="previewLabel">预览效果</div>
+                <div class="preview-container" id="previewContainer">
+                    <div class="preview-placeholder" id="previewPlaceholder">上传图片后会显示预览</div>
+                    <canvas id="previewCanvas" class="preview-canvas" style="display: none;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-secondary" id="resetBtn">重置</button>
+            <button class="btn btn-primary" id="downloadBtn" disabled id="downloadText">⬇️ 下载 PNG</button>
+        </div>
+
+        <div class="footer">
+            <p id="footerTip">💡 完全离线运行，你的图片不会上传到任何服务器</p>
+            <p style="margin-top: 10px; font-size: 11px; color: #bbb;">
+                © 2026 <a href="https://github.com/guiran" class="footer-link">Guiran</a> | 
+                <a href="https://github.com/guiran/signature-to-png" class="footer-link">GitHub</a> |
+                Signature to PNG Tool v1.0 | MIT License
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 多语言配置
+        const i18n = {
+            zh: {
+                appTitle: '✍️ 签名转PNG工具',
+                appSubtitle: '简洁高效，上传 → 调参 → 下载',
+                uploadText: '点击或拖拽上传签名照片',
+                uploadHint: '支持 JPG, PNG, GIF 等格式',
+                thresholdLabel: '阈值调节',
+                thresholdHint: '数值小 → 保留细节，数值大 → 只保留黑色',
+                blurLabel: '去噪强度',
+                blurHint: '消除背景纹理和阴影',
+                previewLabel: '预览效果',
+                previewPlaceholder: '上传图片后会显示预览',
+                resetBtn: '重置',
+                downloadBtn: '⬇️ 下载 PNG',
+                footerTip: '💡 完全离线运行，你的图片不会上传到任何服务器',
+                fileLoadedMsg: '已加载图片 ({w}×{h}px)',
+                downloadedMsg: '✅ PNG已下载！',
+                invalidFileMsg: '请上传有效的图片文件',
+                fileTooLargeMsg: '图片文件过大'
+            },
+            en: {
+                appTitle: '✍️ Signature to PNG Tool',
+                appSubtitle: 'Simple and efficient, upload → adjust → download',
+                uploadText: 'Click or drag to upload signature photo',
+                uploadHint: 'Supports JPG, PNG, GIF and other formats',
+                thresholdLabel: 'Threshold',
+                thresholdHint: 'Smaller → keep details, Larger → keep only black',
+                blurLabel: 'Denoise Strength',
+                blurHint: 'Remove background texture and shadow',
+                previewLabel: 'Preview',
+                previewPlaceholder: 'Preview will show after uploading image',
+                resetBtn: 'Reset',
+                downloadBtn: '⬇️ Download PNG',
+                footerTip: '💡 Runs completely offline, your image will not be uploaded to any server',
+                fileLoadedMsg: 'Image loaded ({w}×{h}px)',
+                downloadedMsg: '✅ PNG downloaded!',
+                invalidFileMsg: 'Please upload a valid image file',
+                fileTooLargeMsg: 'Image file is too large'
+            }
+        };
+
+        let currentLang = 'zh';
+        let originalImage = null;
+        let processedCanvas = null;
+
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const previewContainer = document.getElementById('previewContainer');
+        const thresholdSlider = document.getElementById('thresholdSlider');
+        const thresholdValue = document.getElementById('thresholdValue');
+        const blurSlider = document.getElementById('blurSlider');
+        const blurValue = document.getElementById('blurValue');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // 语言切换
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentLang = e.target.dataset.lang;
+                updateLanguage();
+            });
+        });
+
+        function updateLanguage() {
+            const t = i18n[currentLang];
+            document.getElementById('appTitle').textContent = t.appTitle;
+            document.getElementById('appSubtitle').textContent = t.appSubtitle;
+            document.getElementById('uploadText').textContent = t.uploadText;
+            document.getElementById('uploadHint').textContent = t.uploadHint;
+            document.getElementById('thresholdLabel').textContent = t.thresholdLabel;
+            document.getElementById('thresholdHint').textContent = t.thresholdHint;
+            document.getElementById('blurLabel').textContent = t.blurLabel;
+            document.getElementById('blurHint').textContent = t.blurHint;
+            document.getElementById('previewLabel').textContent = t.previewLabel;
+            document.getElementById('previewPlaceholder').textContent = t.previewPlaceholder;
+            document.getElementById('resetBtn').textContent = t.resetBtn;
+            document.getElementById('downloadBtn').textContent = t.downloadBtn;
+            document.getElementById('footerTip').textContent = t.footerTip;
+        }
+
+        function getText(key, params = {}) {
+            let text = i18n[currentLang][key];
+            for (const [k, v] of Object.entries(params)) {
+                text = text.replace(`{${k}}`, v);
+            }
+            return text;
+        }
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        thresholdSlider.addEventListener('input', (e) => {
+            thresholdValue.textContent = e.target.value;
+            if (originalImage) {
+                processImage();
+            }
+        });
+
+        blurSlider.addEventListener('input', (e) => {
+            blurValue.textContent = e.target.value;
+            if (originalImage) {
+                processImage();
+            }
+        });
+
+        downloadBtn.addEventListener('click', downloadPNG);
+        resetBtn.addEventListener('click', resetTool);
+
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                showMessage(getText('invalidFileMsg'), 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showMessage(getText('fileTooLargeMsg'), 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    originalImage = img;
+                    fileInput.value = '';
+                    showMessage(getText('fileLoadedMsg', { w: img.width, h: img.height }), 'info');
+                    downloadBtn.disabled = false;
+                    processImage();
+                };
+                img.onerror = () => {
+                    showMessage(getText('invalidFileMsg'), 'error');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processImage() {
+            if (!originalImage) return;
+
+            const threshold = parseInt(thresholdSlider.value);
+            const blurStrength = parseInt(blurSlider.value);
+
+            const fullCanvas = document.createElement('canvas');
+            fullCanvas.width = originalImage.width;
+            fullCanvas.height = originalImage.height;
+            const fullCtx = fullCanvas.getContext('2d');
+            fullCtx.drawImage(originalImage, 0, 0);
+            const fullImageData = fullCtx.getImageData(0, 0, fullCanvas.width, fullCanvas.height);
+            const fullData = fullImageData.data;
+
+            if (blurStrength > 0) {
+                applyGaussianBlur(fullImageData, fullCanvas.width, fullCanvas.height, blurStrength);
+            }
+
+            for (let i = 0; i < fullData.length; i += 4) {
+                const r = fullData[i];
+                const g = fullData[i + 1];
+                const b = fullData[i + 2];
+                const gray = (r + g + b) / 3;
+
+                if (gray < threshold) {
+                    fullData[i] = 0;
+                    fullData[i + 1] = 0;
+                    fullData[i + 2] = 0;
+                    fullData[i + 3] = 255;
+                } else {
+                    fullData[i + 3] = 0;
+                }
+            }
+
+            fullCtx.putImageData(fullImageData, 0, 0);
+            processedCanvas = fullCanvas;
+
+            displayPreview(fullCanvas);
+        }
+
+        function applyGaussianBlur(imageData, width, height, strength) {
+            const data = imageData.data;
+            const kernel = [[1, 2, 1], [2, 4, 2], [1, 2, 1]];
+            const weight = 16;
+
+            for (let iter = 0; iter < strength; iter++) {
+                const tempData = new Uint8ClampedArray(data);
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        for (let c = 0; c < 3; c++) {
+                            let sum = 0;
+                            for (let ky = -1; ky <= 1; ky++) {
+                                for (let kx = -1; kx <= 1; kx++) {
+                                    const idx = ((y + ky) * width + (x + kx)) * 4 + c;
+                                    sum += tempData[idx] * kernel[ky + 1][kx + 1];
+                                }
+                            }
+                            const idx = (y * width + x) * 4 + c;
+                            data[idx] = Math.round(sum / weight);
+                        }
+                    }
+                }
+            }
+        }
+
+        function displayPreview(canvas) {
+            const maxWidth = previewContainer.clientWidth - 30;
+            const maxHeight = 300;
+
+            let displayWidth = canvas.width;
+            let displayHeight = canvas.height;
+
+            if (displayWidth > maxWidth || displayHeight > maxHeight) {
+                const scaleX = maxWidth / displayWidth;
+                const scaleY = maxHeight / displayHeight;
+                const scale = Math.min(scaleX, scaleY);
+                displayWidth = Math.round(displayWidth * scale);
+                displayHeight = Math.round(displayHeight * scale);
+            }
+
+            previewCanvas.width = displayWidth;
+            previewCanvas.height = displayHeight;
+
+            const ctx = previewCanvas.getContext('2d');
+            ctx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, displayWidth, displayHeight);
+
+            previewPlaceholder.style.display = 'none';
+            previewCanvas.style.display = 'block';
+        }
+
+        function downloadPNG() {
+            if (!processedCanvas) {
+                showMessage(getText('invalidFileMsg'), 'error');
+                return;
+            }
+
+            processedCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `signature_${new Date().getTime()}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                showMessage(getText('downloadedMsg'), 'success');
+            }, 'image/png');
+        }
+
+        function resetTool() {
+            originalImage = null;
+            processedCanvas = null;
+            fileInput.value = '';
+            previewCanvas.style.display = 'none';
+            previewPlaceholder.style.display = 'block';
+            previewPlaceholder.textContent = getText('previewPlaceholder');
+            thresholdSlider.value = 150;
+            thresholdValue.textContent = '150';
+            blurSlider.value = 1;
+            blurValue.textContent = '1';
+            downloadBtn.disabled = true;
+            statusMessage.style.display = 'none';
+        }
+
+        function showMessage(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+            statusMessage.style.display = 'block';
+            if (type === 'success' || type === 'info') {
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 初始化语言
+        updateLanguage();
+    </script>
+</body>
+</html>
