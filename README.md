@@ -128,6 +128,38 @@ If you have questions or need help:
 - Check existing issues for solutions
 - Review the documentation
 
+
+## ⚠️ Legal & Ethical Disclaimer
+
+This tool is provided for **legitimate purposes only**, such as:
+- Creating digital signatures for personal use
+- Processing signatures for accessibility purposes
+- Educational and research purposes
+
+### ❌ Prohibited Uses:
+- **Forgery**: Using this tool to forge or create fraudulent signatures
+- **Document Fraud**: Falsifying official documents or agreements
+- **Impersonation**: Creating signatures to impersonate others
+- **Illegal Activities**: Any use that violates local laws or regulations
+
+**Users are solely responsible** for how they use this tool. The developer assumes no liability for misuse.
+
+---
+
+## 法律和道德声明 ⚠️
+
+本工具仅供**合法用途**使用，包括：
+- 创建个人数字签名
+- 为有需要的人处理签名
+- 教育和研究目的
+
+### ❌ 禁止用途：
+- **伪造**：使用本工具伪造或创建虚假签名
+- **文件欺诈**：篡改官方文件或合同
+- **冒充**：创建签名冒充他人
+- **违法活动**：任何违反当地法律的使用
+
+**用户完全自行承担**使用本工具的所有责任。开发者对不当使用不承担任何法律责任。
 ---
 
 ⭐ If you find this tool helpful, please give it a star!
