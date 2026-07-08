@@ -361,6 +361,140 @@
                 width: 100%;
             }
         }
+
+        /* 裁剪与旋转模态框样式 */
+        .crop-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        .crop-modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .crop-modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .crop-modal-header h3 {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .crop-modal-close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #aaa;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        .crop-modal-close:hover {
+            color: #333;
+        }
+
+        .crop-workspace {
+            padding: 20px;
+            background: #f0f2f5;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            min-height: 320px;
+            max-height: 60vh;
+        }
+
+        .crop-container {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background: repeating-conic-gradient(#fff 0% 25%, #eee 0% 50%) 50% / 20px 20px;
+        }
+
+        #cropTargetImage {
+            max-width: 100%;
+            max-height: 50vh;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+        }
+
+        .crop-box {
+            position: absolute;
+            border: 2px dashed #667eea;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            cursor: move;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+
+        .crop-handle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #667eea;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            touch-action: none;
+        }
+
+        .crop-handle.nw { top: -7px; left: -7px; cursor: nwse-resize; }
+        .crop-handle.ne { top: -7px; right: -7px; cursor: nesw-resize; }
+        .crop-handle.sw { bottom: -7px; left: -7px; cursor: nesw-resize; }
+        .crop-handle.se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+
+        .crop-modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            background: #fafafa;
+        }
+
+        @media (max-width: 480px) {
+            .crop-modal-footer {
+                flex-direction: column;
+            }
+            .crop-modal-footer .btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -405,6 +539,24 @@
                         <input type="range" id="blurSlider" class="slider" min="0" max="5" value="1" step="0.5">
                         <div class="upload-hint" id="blurHint">消除背景纹理和阴影</div>
                     </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="boldnessLabel">笔迹加粗</span>
+                            <span class="control-value" id="boldnessValue">0</span>
+                        </div>
+                        <input type="range" id="boldnessSlider" class="slider" min="0" max="3" value="0" step="1">
+                        <div class="upload-hint" id="boldnessHint">增加笔迹厚度，使签名更黑</div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span id="smoothnessLabel">边缘平滑</span>
+                            <span class="control-value" id="smoothnessValue">5</span>
+                        </div>
+                        <input type="range" id="smoothnessSlider" class="slider" min="1" max="30" value="5" step="1">
+                        <div class="upload-hint" id="smoothnessHint">消除锯齿，边缘更圆滑</div>
+                    </div>
                 </div>
             </div>
 
@@ -418,8 +570,35 @@
         </div>
 
         <div class="actions">
+            <button class="btn btn-secondary" id="cropRotateBtn" disabled>✂️ 裁剪与旋转</button>
             <button class="btn btn-secondary" id="resetBtn">重置</button>
-            <button class="btn btn-primary" id="downloadBtn" disabled id="downloadText">⬇️ 下载 PNG</button>
+            <button class="btn btn-primary" id="downloadBtn" disabled>⬇️ 下载 PNG</button>
+        </div>
+
+        <!-- 裁剪与旋转模态框 -->
+        <div id="cropModal" class="crop-modal" style="display: none;">
+            <div class="crop-modal-content">
+                <div class="crop-modal-header">
+                    <h3 id="cropModalTitle">裁剪与旋转图片</h3>
+                    <span class="crop-modal-close" id="cropModalClose">&times;</span>
+                </div>
+                <div class="crop-workspace">
+                    <div class="crop-container" id="cropContainer">
+                        <img id="cropTargetImage" src="" alt="Crop target">
+                        <div id="cropBox" class="crop-box">
+                            <div class="crop-handle nw"></div>
+                            <div class="crop-handle ne"></div>
+                            <div class="crop-handle sw"></div>
+                            <div class="crop-handle se"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="crop-modal-footer">
+                    <button class="btn btn-secondary" id="cropRotateLeftBtn">🔄 旋转 90°</button>
+                    <button class="btn btn-secondary" id="cropCancelBtn">取消</button>
+                    <button class="btn btn-primary" id="cropConfirmBtn">确认裁剪</button>
+                </div>
+            </div>
         </div>
 
         <div class="footer">
@@ -453,8 +632,13 @@
                 thresholdHint: '数值小 → 保留细节，数值大 → 只保留黑色',
                 blurLabel: '去噪强度',
                 blurHint: '消除背景纹理和阴影',
+                boldnessLabel: '笔迹加粗',
+                boldnessHint: '增加笔迹厚度，使签名视觉上更黑',
+                smoothnessLabel: '边缘平滑',
+                smoothnessHint: '数值大 → 消除锯齿，边缘更圆滑',
                 previewLabel: '预览效果',
                 previewPlaceholder: '上传图片后会显示预览',
+                cropRotateBtn: '✂️ 裁剪与旋转',
                 resetBtn: '重置',
                 downloadBtn: '⬇️ 下载 PNG',
                 footerTip: '💡 完全离线运行，你的图片不会上传到任何服务器',
@@ -462,7 +646,12 @@
                 downloadedMsg: '✅ PNG已下载！',
                 invalidFileMsg: '请上传有效的图片文件',
                 fileTooLargeMsg: '图片文件过大',
-                legalWarning: '⚠️ 本工具仅供合法用途，不能用于伪造签名或欺诈行为'
+                legalWarning: '⚠️ 本工具仅供合法用途，不能用于伪造签名或欺诈行为',
+                cropModalTitle: '裁剪与旋转图片',
+                cropRotateLeftBtn: '🔄 旋转 90°',
+                cropCancelBtn: '取消',
+                cropConfirmBtn: '确认裁剪',
+                processingMsg: '正在处理图像...'
             },
             en: {
                 appTitle: '✍️ Signature to PNG Tool',
@@ -473,8 +662,13 @@
                 thresholdHint: 'Smaller → keep details, Larger → keep only black',
                 blurLabel: 'Denoise Strength',
                 blurHint: 'Remove background texture and shadow',
+                boldnessLabel: 'Stroke Boldness',
+                boldnessHint: 'Thicken strokes to make the signature look darker',
+                smoothnessLabel: 'Edge Smoothness',
+                smoothnessHint: 'Larger → anti-aliased, smoother edges',
                 previewLabel: 'Preview',
                 previewPlaceholder: 'Preview will show after uploading image',
+                cropRotateBtn: '✂️ Crop & Rotate',
                 resetBtn: 'Reset',
                 downloadBtn: '⬇️ Download PNG',
                 footerTip: '💡 Runs completely offline, your image will not be uploaded to any server',
@@ -482,13 +676,21 @@
                 downloadedMsg: '✅ PNG downloaded!',
                 invalidFileMsg: 'Please upload a valid image file',
                 fileTooLargeMsg: 'Image file is too large',
-                legalWarning: '⚠️ This tool is for legitimate purposes only. Forgery is prohibited.'
+                legalWarning: '⚠️ This tool is for legitimate purposes only. Forgery is prohibited.',
+                cropModalTitle: 'Crop & Rotate Image',
+                cropRotateLeftBtn: '🔄 Rotate 90°',
+                cropCancelBtn: 'Cancel',
+                cropConfirmBtn: 'Confirm Crop',
+                processingMsg: 'Processing image...'
             }
         };
 
         let currentLang = 'zh';
-        let originalImage = null;
+        let originalImage = null; // 可为 Canvas (裁剪/旋转后) 或 Image (初始上传)
+        let sourceCanvas = null;  // 保存原始（或仅旋转）图像的内存画布，每次重新裁剪时以此为底
+        let workCanvas = null;    // 裁剪模态框编辑中的画布
         let processedCanvas = null;
+        let worker = null;
 
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
@@ -499,9 +701,23 @@
         const thresholdValue = document.getElementById('thresholdValue');
         const blurSlider = document.getElementById('blurSlider');
         const blurValue = document.getElementById('blurValue');
+        const boldnessSlider = document.getElementById('boldnessSlider');
+        const boldnessValue = document.getElementById('boldnessValue');
+        const smoothnessSlider = document.getElementById('smoothnessSlider');
+        const smoothnessValue = document.getElementById('smoothnessValue');
         const downloadBtn = document.getElementById('downloadBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const cropRotateBtn = document.getElementById('cropRotateBtn');
         const statusMessage = document.getElementById('statusMessage');
+
+        // 裁剪模态框相关元素
+        const cropModal = document.getElementById('cropModal');
+        const cropTargetImage = document.getElementById('cropTargetImage');
+        const cropBox = document.getElementById('cropBox');
+        const cropModalClose = document.getElementById('cropModalClose');
+        const cropRotateLeftBtn = document.getElementById('cropRotateLeftBtn');
+        const cropCancelBtn = document.getElementById('cropCancelBtn');
+        const cropConfirmBtn = document.getElementById('cropConfirmBtn');
 
         // 语言切换
         document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -523,11 +739,22 @@
             document.getElementById('thresholdHint').textContent = t.thresholdHint;
             document.getElementById('blurLabel').textContent = t.blurLabel;
             document.getElementById('blurHint').textContent = t.blurHint;
+            document.getElementById('boldnessLabel').textContent = t.boldnessLabel;
+            document.getElementById('boldnessHint').textContent = t.boldnessHint;
+            document.getElementById('smoothnessLabel').textContent = t.smoothnessLabel;
+            document.getElementById('smoothnessHint').textContent = t.smoothnessHint;
             document.getElementById('previewLabel').textContent = t.previewLabel;
             document.getElementById('previewPlaceholder').textContent = t.previewPlaceholder;
+            document.getElementById('cropRotateBtn').textContent = t.cropRotateBtn;
             document.getElementById('resetBtn').textContent = t.resetBtn;
             document.getElementById('downloadBtn').textContent = t.downloadBtn;
             document.getElementById('footerTip').textContent = t.footerTip;
+            
+            // 模态框翻译
+            document.getElementById('cropModalTitle').textContent = t.cropModalTitle;
+            document.getElementById('cropRotateLeftBtn').textContent = t.cropRotateLeftBtn;
+            document.getElementById('cropCancelBtn').textContent = t.cropCancelBtn;
+            document.getElementById('cropConfirmBtn').textContent = t.cropConfirmBtn;
         }
 
         function getText(key, params = {}) {
@@ -559,22 +786,212 @@
             }
         });
 
+        // 滑动条事件监听
         thresholdSlider.addEventListener('input', (e) => {
             thresholdValue.textContent = e.target.value;
-            if (originalImage) {
-                processImage();
-            }
+            processImage();
         });
-
         blurSlider.addEventListener('input', (e) => {
             blurValue.textContent = e.target.value;
-            if (originalImage) {
-                processImage();
-            }
+            processImage();
+        });
+        boldnessSlider.addEventListener('input', (e) => {
+            boldnessValue.textContent = e.target.value;
+            processImage();
+        });
+        smoothnessSlider.addEventListener('input', (e) => {
+            smoothnessValue.textContent = e.target.value;
+            processImage();
         });
 
         downloadBtn.addEventListener('click', downloadPNG);
         resetBtn.addEventListener('click', resetTool);
+
+        // --- Web Worker 初始化与管理 ---
+        function initWorker() {
+            if (worker) {
+                worker.terminate();
+            }
+
+            const workerCode = `
+                self.onmessage = function(e) {
+                    const { imageData, width, height, threshold, blurStrength, boldness, smoothness } = e.data;
+                    const data = imageData.data;
+
+                    // 1. 去噪（高斯模糊）
+                    if (blurStrength > 0) {
+                        applyGaussianBlur(data, width, height, blurStrength);
+                    }
+
+                    // 2. 软二值化算法（边缘过渡平滑）
+                    const alphaChannel = new Uint8ClampedArray(width * height);
+                    const halfSmooth = smoothness / 2;
+
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+                        const gray = (r + g + b) / 3;
+
+                        let alpha = 0;
+                        if (smoothness <= 1) {
+                            alpha = gray < threshold ? 255 : 0;
+                        } else {
+                            if (gray < threshold - halfSmooth) {
+                                alpha = 255;
+                            } else if (gray > threshold + halfSmooth) {
+                                alpha = 0;
+                            } else {
+                                alpha = Math.round(255 * ((threshold + halfSmooth) - gray) / smoothness);
+                            }
+                        }
+                        alphaChannel[i / 4] = alpha;
+                    }
+
+                    // 3. 笔迹膨胀加粗算法
+                    let finalAlpha = alphaChannel;
+                    if (boldness > 0) {
+                        finalAlpha = applyDilation(alphaChannel, width, height, boldness);
+                    }
+
+                    // 4. 重构 RGBA 数据，将所有签名点强制为黑色，仅调整不透明度 alpha
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = 0;     // R
+                        data[i + 1] = 0; // G
+                        data[i + 2] = 0; // B
+                        data[i + 3] = finalAlpha[i / 4]; // A
+                    }
+
+                    self.postMessage({ imageData }, [imageData.data.buffer]);
+                };
+
+                // 高斯模糊处理
+                function applyGaussianBlur(data, width, height, strength) {
+                    const kernel = [[1, 2, 1], [2, 4, 2], [1, 2, 1]];
+                    const weight = 16;
+                    const temp = new Uint8ClampedArray(width * height * 4);
+
+                    // 限制最大模糊强度，防爆防卡
+                    const steps = Math.min(strength, 5);
+
+                    for (let iter = 0; iter < steps; iter++) {
+                        temp.set(data);
+                        for (let y = 1; y < height - 1; y++) {
+                            const yOffset = y * width;
+                            for (let x = 1; x < width - 1; x++) {
+                                const idx = (yOffset + x) * 4;
+                                for (let c = 0; c < 3; c++) {
+                                    let sum = 0;
+                                    for (let ky = -1; ky <= 1; ky++) {
+                                        const kyOffset = (y + ky) * width;
+                                        for (let kx = -1; kx <= 1; kx++) {
+                                            const nIdx = (kyOffset + (x + kx)) * 4 + c;
+                                            sum += temp[nIdx] * kernel[ky + 1][kx + 1];
+                                        }
+                                    }
+                                    data[idx + c] = (sum / weight) | 0;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 笔迹膨胀（Dilation）
+                function applyDilation(alphaChannel, width, height, radius) {
+                    const result = new Uint8ClampedArray(alphaChannel.length);
+                    result.set(alphaChannel);
+
+                    for (let y = 0; y < height; y++) {
+                        const yOffset = y * width;
+                        for (let x = 0; x < width; x++) {
+                            const idx = yOffset + x;
+                            const alpha = alphaChannel[idx];
+                            if (alpha > 0) {
+                                const startY = Math.max(0, y - radius);
+                                const endY = Math.min(height - 1, y + radius);
+                                const startX = Math.max(0, x - radius);
+                                const endX = Math.min(width - 1, x + radius);
+
+                                for (let ny = startY; ny <= endY; ny++) {
+                                    const nyOffset = ny * width;
+                                    for (let nx = startX; nx <= endX; nx++) {
+                                        const nIdx = nyOffset + nx;
+                                        if (result[nIdx] < alpha) {
+                                            result[nIdx] = alpha;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return result;
+                }
+            `;
+
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            worker = new Worker(URL.createObjectURL(blob));
+
+            worker.onmessage = function(e) {
+                const { imageData } = e.data;
+                
+                const fullCanvas = document.createElement('canvas');
+                fullCanvas.width = imageData.width;
+                fullCanvas.height = imageData.height;
+                const fullCtx = fullCanvas.getContext('2d');
+                fullCtx.putImageData(imageData, 0, 0);
+                processedCanvas = fullCanvas;
+
+                displayPreview(fullCanvas);
+                
+                // 处理完成，恢复状态
+                downloadBtn.disabled = false;
+                statusMessage.style.display = 'none';
+            };
+        }
+
+        let processDebounceTimeout = null;
+
+        function processImage() {
+            if (!originalImage) return;
+
+            // 显示“处理中...”状态
+            statusMessage.style.display = 'block';
+            statusMessage.className = 'status-message info';
+            statusMessage.textContent = getText('processingMsg');
+            downloadBtn.disabled = true;
+
+            // 防抖，限制触发频率
+            clearTimeout(processDebounceTimeout);
+            processDebounceTimeout = setTimeout(() => {
+                if (!worker) {
+                    initWorker();
+                }
+
+                const threshold = parseInt(thresholdSlider.value);
+                const blurStrength = parseFloat(blurSlider.value);
+                const boldness = parseInt(boldnessSlider.value);
+                const smoothness = parseInt(smoothnessSlider.value);
+
+                const fullCanvas = document.createElement('canvas');
+                fullCanvas.width = originalImage.width;
+                fullCanvas.height = originalImage.height;
+                const fullCtx = fullCanvas.getContext('2d');
+                fullCtx.drawImage(originalImage, 0, 0);
+                
+                const imageData = fullCtx.getImageData(0, 0, fullCanvas.width, fullCanvas.height);
+                
+                // 将数据移交给 Worker
+                worker.postMessage({
+                    imageData,
+                    width: fullCanvas.width,
+                    height: fullCanvas.height,
+                    threshold,
+                    blurStrength,
+                    boldness,
+                    smoothness
+                }, [imageData.data.buffer]);
+            }, 80);
+        }
 
         function handleFileSelect(file) {
             if (!file.type.startsWith('image/')) {
@@ -591,10 +1008,17 @@
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
-                    originalImage = img;
+                    // 初始化内存画布
+                    sourceCanvas = document.createElement('canvas');
+                    sourceCanvas.width = img.width;
+                    sourceCanvas.height = img.height;
+                    const ctx = sourceCanvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+
+                    originalImage = sourceCanvas;
                     fileInput.value = '';
                     showMessage(getText('fileLoadedMsg', { w: img.width, h: img.height }), 'info');
-                    downloadBtn.disabled = false;
+                    cropRotateBtn.disabled = false;
                     processImage();
                 };
                 img.onerror = () => {
@@ -605,70 +1029,178 @@
             reader.readAsDataURL(file);
         }
 
-        function processImage() {
-            if (!originalImage) return;
-
-            const threshold = parseInt(thresholdSlider.value);
-            const blurStrength = parseInt(blurSlider.value);
-
-            const fullCanvas = document.createElement('canvas');
-            fullCanvas.width = originalImage.width;
-            fullCanvas.height = originalImage.height;
-            const fullCtx = fullCanvas.getContext('2d');
-            fullCtx.drawImage(originalImage, 0, 0);
-            const fullImageData = fullCtx.getImageData(0, 0, fullCanvas.width, fullCanvas.height);
-            const fullData = fullImageData.data;
-
-            if (blurStrength > 0) {
-                applyGaussianBlur(fullImageData, fullCanvas.width, fullCanvas.height, blurStrength);
-            }
-
-            for (let i = 0; i < fullData.length; i += 4) {
-                const r = fullData[i];
-                const g = fullData[i + 1];
-                const b = fullData[i + 2];
-                const gray = (r + g + b) / 3;
-
-                if (gray < threshold) {
-                    fullData[i] = 0;
-                    fullData[i + 1] = 0;
-                    fullData[i + 2] = 0;
-                    fullData[i + 3] = 255;
-                } else {
-                    fullData[i + 3] = 0;
-                }
-            }
-
-            fullCtx.putImageData(fullImageData, 0, 0);
-            processedCanvas = fullCanvas;
-
-            displayPreview(fullCanvas);
+        // --- 旋转画布辅助函数 ---
+        function rotateCanvas90(srcCanvas) {
+            const dstCanvas = document.createElement('canvas');
+            dstCanvas.width = srcCanvas.height;
+            dstCanvas.height = srcCanvas.width;
+            const ctx = dstCanvas.getContext('2d');
+            ctx.translate(dstCanvas.width, 0);
+            ctx.rotate(90 * Math.PI / 180);
+            ctx.drawImage(srcCanvas, 0, 0);
+            return dstCanvas;
         }
 
-        function applyGaussianBlur(imageData, width, height, strength) {
-            const data = imageData.data;
-            const kernel = [[1, 2, 1], [2, 4, 2], [1, 2, 1]];
-            const weight = 16;
+        // --- 裁剪与旋转交互逻辑 ---
+        let currentCrop = { left: 0, top: 0, width: 0, height: 0 };
+        let isDragging = false;
+        let isResizing = false;
+        let resizeHandle = '';
+        let startX = 0, startY = 0;
+        let initialCrop = { left: 0, top: 0, width: 0, height: 0 };
 
-            for (let iter = 0; iter < strength; iter++) {
-                const tempData = new Uint8ClampedArray(data);
-                for (let y = 1; y < height - 1; y++) {
-                    for (let x = 1; x < width - 1; x++) {
-                        for (let c = 0; c < 3; c++) {
-                            let sum = 0;
-                            for (let ky = -1; ky <= 1; ky++) {
-                                for (let kx = -1; kx <= 1; kx++) {
-                                    const idx = ((y + ky) * width + (x + kx)) * 4 + c;
-                                    sum += tempData[idx] * kernel[ky + 1][kx + 1];
-                                }
-                            }
-                            const idx = (y * width + x) * 4 + c;
-                            data[idx] = Math.round(sum / weight);
-                        }
-                    }
+        cropRotateBtn.addEventListener('click', () => {
+            if (!sourceCanvas) return;
+
+            // 制作副本进行编辑
+            workCanvas = document.createElement('canvas');
+            workCanvas.width = sourceCanvas.width;
+            workCanvas.height = sourceCanvas.height;
+            const ctx = workCanvas.getContext('2d');
+            ctx.drawImage(sourceCanvas, 0, 0);
+
+            cropModal.style.display = 'flex';
+            cropTargetImage.src = workCanvas.toDataURL();
+        });
+
+        cropTargetImage.onload = () => {
+            // 当图片加载（或旋转）后，初始化裁剪框
+            const imgW = cropTargetImage.clientWidth;
+            const imgH = cropTargetImage.clientHeight;
+
+            // 裁剪框大小设为图片的 80%，居中显示
+            const boxW = Math.max(imgW * 0.8, 50);
+            const boxH = Math.max(imgH * 0.8, 50);
+            const boxL = (imgW - boxW) / 2;
+            const boxT = (imgH - boxH) / 2;
+
+            updateCropBoxDOM(boxL, boxT, boxW, boxH);
+        };
+
+        function updateCropBoxDOM(l, t, w, h) {
+            const imgW = cropTargetImage.clientWidth;
+            const imgH = cropTargetImage.clientHeight;
+
+            // 限制范围，确保不越界
+            l = Math.max(0, Math.min(imgW, l));
+            t = Math.max(0, Math.min(imgH, t));
+            w = Math.max(30, Math.min(imgW - l, w));
+            h = Math.max(30, Math.min(imgH - t, h));
+
+            currentCrop = { left: l, top: t, width: w, height: h };
+
+            cropBox.style.left = `${l}px`;
+            cropBox.style.top = `${t}px`;
+            cropBox.style.width = `${w}px`;
+            cropBox.style.height = `${h}px`;
+        }
+
+        cropBox.addEventListener('mousedown', startAction);
+        cropBox.addEventListener('touchstart', startAction, { passive: false });
+
+        function startAction(e) {
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            if (e.target.classList.contains('crop-handle')) {
+                isResizing = true;
+                resizeHandle = e.target.className.split(' ').find(c => c !== 'crop-handle');
+            } else {
+                isDragging = true;
+            }
+
+            startX = clientX;
+            startY = clientY;
+            initialCrop = { ...currentCrop };
+            e.preventDefault();
+        }
+
+        window.addEventListener('mousemove', moveAction);
+        window.addEventListener('touchmove', moveAction, { passive: false });
+
+        function moveAction(e) {
+            if (!isDragging && !isResizing) return;
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            if (isDragging) {
+                updateCropBoxDOM(initialCrop.left + dx, initialCrop.top + dy, initialCrop.width, initialCrop.height);
+            } else if (isResizing) {
+                let l = initialCrop.left;
+                let t = initialCrop.top;
+                let w = initialCrop.width;
+                let h = initialCrop.height;
+
+                if (resizeHandle.includes('e')) {
+                    w = initialCrop.width + dx;
                 }
+                if (resizeHandle.includes('w')) {
+                    l = initialCrop.left + dx;
+                    w = initialCrop.width - dx;
+                }
+                if (resizeHandle.includes('s')) {
+                    h = initialCrop.height + dy;
+                }
+                if (resizeHandle.includes('n')) {
+                    t = initialCrop.top + dy;
+                    h = initialCrop.height - dy;
+                }
+
+                updateCropBoxDOM(l, t, w, h);
             }
         }
+
+        const endAction = () => {
+            isDragging = false;
+            isResizing = false;
+        };
+        window.addEventListener('mouseup', endAction);
+        window.addEventListener('touchend', endAction);
+
+        cropRotateLeftBtn.addEventListener('click', () => {
+            // 将编辑画布旋转90度
+            workCanvas = rotateCanvas90(workCanvas);
+            // 同时更新源画布，这样多次旋转是累加的
+            sourceCanvas = workCanvas;
+            cropTargetImage.src = workCanvas.toDataURL();
+        });
+
+        cropCancelBtn.addEventListener('click', () => {
+            cropModal.style.display = 'none';
+        });
+        cropModalClose.addEventListener('click', () => {
+            cropModal.style.display = 'none';
+        });
+
+        cropConfirmBtn.addEventListener('click', () => {
+            // 计算映射到原始物理分辨率的裁剪区域
+            const scaleX = workCanvas.width / cropTargetImage.clientWidth;
+            const scaleY = workCanvas.height / cropTargetImage.clientHeight;
+
+            const actualLeft = currentCrop.left * scaleX;
+            const actualTop = currentCrop.top * scaleY;
+            const actualWidth = currentCrop.width * scaleX;
+            const actualHeight = currentCrop.height * scaleY;
+
+            const croppedCanvas = document.createElement('canvas');
+            croppedCanvas.width = actualWidth;
+            croppedCanvas.height = actualHeight;
+            const ctx = croppedCanvas.getContext('2d');
+            ctx.drawImage(workCanvas, actualLeft, actualTop, actualWidth, actualHeight, 0, 0, actualWidth, actualHeight);
+
+            // 更新原始图像数据为裁剪后的画布
+            originalImage = croppedCanvas;
+            
+            // 将源画布同步，以确保二次裁剪基于上次的裁剪结果
+            sourceCanvas = croppedCanvas;
+
+            cropModal.style.display = 'none';
+            processImage();
+        });
 
         function displayPreview(canvas) {
             const maxWidth = previewContainer.clientWidth - 30;
@@ -716,6 +1248,8 @@
 
         function resetTool() {
             originalImage = null;
+            sourceCanvas = null;
+            workCanvas = null;
             processedCanvas = null;
             fileInput.value = '';
             previewCanvas.style.display = 'none';
@@ -725,8 +1259,17 @@
             thresholdValue.textContent = '150';
             blurSlider.value = 1;
             blurValue.textContent = '1';
+            boldnessSlider.value = 0;
+            boldnessValue.textContent = '0';
+            smoothnessSlider.value = 5;
+            smoothnessValue.textContent = '5';
             downloadBtn.disabled = true;
+            cropRotateBtn.disabled = true;
             statusMessage.style.display = 'none';
+            if (worker) {
+                worker.terminate();
+                worker = null;
+            }
         }
 
         function showMessage(message, type) {
